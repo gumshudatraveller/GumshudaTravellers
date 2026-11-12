@@ -3,16 +3,23 @@ import { Link } from "react-router-dom";
 import { Upload, Plus, LogOut } from "lucide-react";
 import { useAuth } from "../App";
 import { Brand, Button, Field, Notice } from "../components/UI";
-import { request, hasBackend, asset, money } from "../api";
+import {
+  request,
+  hasAdminBackend as hasBackend,
+  hasSupabase,
+  asset,
+  money,
+} from "../api";
 import { packages as seed, images, contact } from "../../shared/data";
 const empty = () => ({
   title: "",
   destination: "Himachal Pradesh",
   route: ["Manali"],
   nights: 2,
-  price: 8499,
+  price: 0,
+  priceOnRequest: true,
   style: "Adventure",
-  image: images.packageManali,
+  image: images.packageLahaul,
   days: ["", "", ""],
   status: "draft",
   attachments: [],
@@ -56,7 +63,7 @@ export default function Admin() {
     if (
       publish &&
       (!draft.title.trim() ||
-        draft.days.length !== draft.nights + 1 ||
+        !draft.days.length ||
         draft.days.some((d) => !d.trim()))
     ) {
       setError("Add a title and an itinerary for every day before publishing.");
@@ -88,8 +95,14 @@ export default function Admin() {
     try {
       const fd = new FormData();
       fd.set("file", file);
-      await request("/admin/media", { method: "POST", body: fd });
-      setMessage("Media added to your library.");
+      const uploaded = await request("/admin/media", {
+        method: "POST",
+        body: fd,
+      });
+      if (uploaded?.type?.startsWith("image/")) change({ image: uploaded.url });
+      setMessage(
+        "Media added to your library. Select it as the package cover below.",
+      );
       await refresh();
     } catch (e) {
       setError(e.message);
@@ -144,15 +157,17 @@ export default function Admin() {
         </p>
       </div>
     );
-  const tabs = [
-    "Overview",
-    "Itineraries",
-    "Custom trip requests",
-    "Bookings",
-    "Traveler stories",
-    "Media library",
-    "Website settings",
-  ];
+  const tabs = hasSupabase
+    ? ["Itineraries", "Media library", "Website settings"]
+    : [
+        "Overview",
+        "Itineraries",
+        "Custom trip requests",
+        "Bookings",
+        "Traveler stories",
+        "Media library",
+        "Website settings",
+      ];
   const filtered = packages.filter(
     (p) =>
       (status === "all" || p.status === status) &&
@@ -164,10 +179,18 @@ export default function Admin() {
     <label className="dropzone compact">
       <Upload />
       <strong>Upload photos, videos or PDFs</strong>
-      <small>JPG, PNG, WebP, MP4, PDF · Up to 100 MB</small>
+      <small>
+        {hasSupabase
+          ? "JPG, PNG, WebP, PDF · Up to 10 MB"
+          : "JPG, PNG, WebP, MP4, PDF · Up to 100 MB"}
+      </small>
       <input
         type="file"
-        accept="image/jpeg,image/png,image/webp,video/mp4,application/pdf"
+        accept={
+          hasSupabase
+            ? "image/jpeg,image/png,image/webp,application/pdf"
+            : "image/jpeg,image/png,image/webp,video/mp4,application/pdf"
+        }
         onChange={upload}
         disabled={!allowed || busy}
       />
@@ -231,7 +254,10 @@ export default function Admin() {
           )}
           <Notice error>{error}</Notice>
           <Notice>{message}</Notice>
-          <div className="stats">
+          <div
+            className="stats"
+            style={hasSupabase ? { display: "none" } : undefined}
+          >
             <div className="panel">
               <p>Live packages</p>
               <strong>
@@ -301,7 +327,11 @@ export default function Admin() {
                             <td>
                               {p.nights}N / {p.nights + 1}D
                             </td>
-                            <td>{money(p.price)}</td>
+                            <td>
+                              {p.priceOnRequest
+                                ? "Request a quote"
+                                : money(p.price)}
+                            </td>
                             <td>
                               <span className={`status ${p.status}`}>
                                 {p.status}
@@ -411,7 +441,8 @@ export default function Admin() {
                     <Field label="From price / person">
                       <input
                         type="number"
-                        min="1"
+                        min={draft.priceOnRequest ? "0" : "1"}
+                        disabled={!!draft.priceOnRequest}
                         value={draft.price}
                         onChange={(e) =>
                           change({ price: Number(e.target.value) })
@@ -429,11 +460,22 @@ export default function Admin() {
                         "Slow travel",
                         "Family time",
                         "Romantic escape",
+                        "Wildlife & culture",
                       ].map((s) => (
                         <option key={s}>{s}</option>
                       ))}
                     </select>
                   </Field>
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={!!draft.priceOnRequest}
+                      onChange={(e) =>
+                        change({ priceOnRequest: e.target.checked })
+                      }
+                    />
+                    Price on request (hide numeric price)
+                  </label>
                   <Field label="Description">
                     <textarea
                       value={draft.description}
@@ -441,11 +483,19 @@ export default function Admin() {
                       onChange={(e) => change({ description: e.target.value })}
                     />
                   </Field>
+                  {uploader}
                   <Field label="Cover photo">
                     <select
                       value={draft.image}
                       onChange={(e) => change({ image: e.target.value })}
                     >
+                      <option value={images.packageLahaul}>Lahaul cover</option>
+                      <option value={images.packageUdaipurJawai}>
+                        Udaipur–Jawai cover
+                      </option>
+                      <option value={images.packageChandratal}>
+                        Chandrataal cover
+                      </option>
                       <option value={images.packageManali}>Manali cover</option>
                       <option value={images.packageSpiti}>Spiti cover</option>
                       <option value={images.packageKerala}>Kerala cover</option>

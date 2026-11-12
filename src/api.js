@@ -1,14 +1,26 @@
 import {
+  supabase,
+  hasSupabase,
+  supabaseRequest,
+  publicPackages,
+} from "./supabase";
+export { hasSupabase };
+import {
   packages as initialPackages,
   stories as initialStories,
 } from "../shared/data";
 export const API = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 export const hasBackend = Boolean(API);
+export const hasAdminBackend = hasSupabase || hasBackend;
 export const asset = (name) =>
-  name?.startsWith("/uploads/")
-    ? `${API.replace(/\/api$/, "")}${name}`
-    : `${import.meta.env.BASE_URL}assets/${name}`;
+  name?.startsWith("https://")
+    ? name
+    : name?.startsWith("/uploads/")
+      ? `${API.replace(/\/api$/, "")}${name}`
+      : `${import.meta.env.BASE_URL}assets/${name}`;
 export async function request(path, options = {}) {
+  if (hasSupabase && (path.startsWith("/admin/") || path.startsWith("/auth/")))
+    return supabaseRequest(path, options);
   if (!API)
     throw new Error(
       "Online accounts and uploads are not available yet. Please contact our travel team on WhatsApp.",
@@ -32,7 +44,11 @@ export async function request(path, options = {}) {
   return body;
 }
 export const getPackages = () =>
-  API ? request("/packages") : Promise.resolve(initialPackages);
+  hasSupabase
+    ? publicPackages()
+    : API
+      ? request("/packages")
+      : Promise.resolve(initialPackages);
 export const getStories = () =>
   API ? request("/stories") : Promise.resolve(initialStories);
 export const money = (n) =>

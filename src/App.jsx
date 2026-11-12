@@ -1,7 +1,7 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { Routes, Route, NavLink, Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import { request, hasBackend } from "./api";
+import { request, hasAdminBackend as hasBackend, hasSupabase } from "./api";
 import { contact } from "../shared/data";
 import { Brand, Button, Arrow, Modal, Field, Notice } from "./components/UI";
 import Home from "./pages/Home";
@@ -17,7 +17,7 @@ export default function App() {
     [mobile, setMobile] = useState(false);
   const location = useLocation();
   useEffect(() => {
-    if (hasBackend && sessionStorage.getItem("gumshuda-token"))
+    if (hasBackend)
       request("/auth/me")
         .then(setUser)
         .catch(() => sessionStorage.removeItem("gumshuda-token"));
@@ -177,7 +177,9 @@ function Login({ onClose }) {
       onClose={onClose}
     >
       <p className="muted">
-        Save your journeys and share the moments that stay with you.
+        {hasSupabase
+          ? "Sign in with your owner account to manage travel packages."
+          : "Save your journeys and share the moments that stay with you."}
       </p>
       {!hasBackend ? (
         <Notice>
@@ -212,18 +214,20 @@ function Login({ onClose }) {
             {busy ? "Please wait…" : signup ? "Create account" : "Log in"}{" "}
             <Arrow />
           </Button>
-          <button
-            type="button"
-            className="text-button"
-            onClick={() => {
-              setSignup(!signup);
-              setError("");
-            }}
-          >
-            {signup
-              ? "Already have an account? Log in"
-              : "New here? Create an account"}
-          </button>
+          {!hasSupabase && (
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                setSignup(!signup);
+                setError("");
+              }}
+            >
+              {signup
+                ? "Already have an account? Log in"
+                : "New here? Create an account"}
+            </button>
+          )}
         </form>
       )}
     </Modal>
