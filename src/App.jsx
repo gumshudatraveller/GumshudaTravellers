@@ -201,8 +201,8 @@ function Login({ onClose }) {
               type="password"
               name="password"
               required
-              minLength={12}
-              maxLength={128}
+              minLength={signup ? 12 : undefined}
+              maxLength={signup ? 128 : undefined}
               autoComplete={signup ? "new-password" : "current-password"}
             />
           </Field>
