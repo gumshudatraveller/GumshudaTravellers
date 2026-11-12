@@ -6,7 +6,8 @@ export const Arrow = () => <ArrowUpRight size={16} aria-hidden="true" />;
 export function Brand() {
   return (
     <Link to="/" className="brand" aria-label="Gumshuda Travellers home">
-      <strong>
+      <img src={asset("gumshuda-logo.jpeg")} alt="" style={{width:48,height:48,borderRadius:"50%",objectFit:"contain"}} />
+      <strong style={{textTransform:"none"}}>
         Gumshuda<span>Travellers</span>
       </strong>
       <small>TRAVEL, YOUR WAY</small>

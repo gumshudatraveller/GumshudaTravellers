@@ -17,7 +17,7 @@ test("API authorization, moderation, publication and persistence", async (t) => 
   let { app, close } = await createApp(config);
   try {
     const catalogue = await request(app).get("/api/packages").expect(200);
-    assert.equal(catalogue.body.length, 9);
+    assert.equal(catalogue.body.length, 3);
     await request(app).get("/api/admin/overview").expect(403);
     const customer = await request(app)
       .post("/api/auth/register")
@@ -69,7 +69,7 @@ test("API authorization, moderation, publication and persistence", async (t) => 
       .set("Authorization", auth)
       .send({ ...trip, status: "published" })
       .expect(200);
-    assert.equal((await request(app).get("/api/packages")).body.length, 10);
+    assert.equal((await request(app).get("/api/packages")).body.length, 4);
     await request(app)
       .post("/api/requests")
       .send({
@@ -79,7 +79,7 @@ test("API authorization, moderation, publication and persistence", async (t) => 
         date: "2000-01-01",
         travelers: 2,
         kind: "package",
-        packageId: "manali",
+        packageId: "lahaul-expedition",
       })
       .expect(400);
     const future = new Date(Date.now() + 86400000 * 10)
@@ -94,7 +94,7 @@ test("API authorization, moderation, publication and persistence", async (t) => 
         date: future,
         travelers: 2,
         kind: "package",
-        packageId: "manali",
+        packageId: "lahaul-expedition",
       })
       .expect(201);
     assert.match(enquiry.body.reference, /^GT-/);
@@ -153,7 +153,7 @@ test("API authorization, moderation, publication and persistence", async (t) => 
       .expect(401);
     close();
     ({ app, close } = await createApp(config));
-    assert.equal((await request(app).get("/api/packages")).body.length, 10);
+    assert.equal((await request(app).get("/api/packages")).body.length, 4);
     assert.equal(
       (await request(app).get("/api/admin/overview").set("Authorization", auth))
         .body.requests.length,
