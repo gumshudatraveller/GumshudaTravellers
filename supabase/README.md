@@ -9,7 +9,7 @@ not enabled by this package-management integration.
 
 ## Provision once
 
-1. Create a project on Supabase's **Free** plan. Do not upgrade billing.
+1. Use the existing project `bxvjfadtuxlotwttdrgi`. Do not upgrade billing.
 2. Apply `migrations/202611130001_packages.sql`, then
    `migrations/202611130002_seed.sql` with the project SQL editor or migrations.
 3. In Authentication, create your owner account using an email you control and
@@ -24,10 +24,11 @@ not enabled by this package-management integration.
 
    Only one owner is allowed. Site users cannot assign themselves this role.
    To transfer ownership, update this row through the project administrator.
-5. Set GitHub repository Actions variables `VITE_SUPABASE_URL` and
-   `VITE_SUPABASE_PUBLISHABLE_KEY` using the project's URL and **publishable**
-   key. Never use a service-role key, secret key or database password here.
-   Keep `VITE_API_URL` empty for the Supabase + WhatsApp configuration.
+5. The website uses the public project URL and publishable key in
+   `src/supabase-config.json`. Optional Actions variables `VITE_SUPABASE_URL`
+   and `VITE_SUPABASE_PUBLISHABLE_KEY` override these values. Never put a
+   service-role key, secret key or database password in frontend configuration.
+   Keep `VITE_API_URL` empty for Supabase + WhatsApp.
 6. Run the GitHub Pages workflow again, then visit `#/admin` and sign in.
 7. Verify saving a draft, uploading a cover, publishing, editing and unpublishing.
    Verify a signed-out visitor can read only published packages and cannot write.
@@ -55,6 +56,13 @@ showing a stale editable catalogue.
 
 ## Current rollout state
 
-Code is prepared, but project provisioning, owner account creation, remote RLS
-verification and live activation require the user's Supabase connection. Until
-public configuration is supplied, the existing static website continues working.
+The existing project has the schema and three published packages loaded.
+Database access tests passed for anonymous visitors, non-admin users and the
+designated owner (temporary test identities were rolled back). The security
+advisor reported no findings. Public configuration is included in the website.
+
+Owner Auth account creation and the permanent site_admin membership are still
+pending. Set the password privately in the Supabase dashboard, then grant the
+verified owner's UUID using the SQL above. Real sign-in and file-upload checks
+must be completed after this step. Public signup should be disabled in Auth
+settings; even if enabled, new users cannot grant themselves admin access.

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+import publicConfig from "./supabase-config.json";
+const url = import.meta.env.VITE_SUPABASE_URL || publicConfig.url;
+const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || publicConfig.publishableKey;
 export const supabase =
   url && key
     ? createClient(url, key, {
@@ -134,7 +135,7 @@ export async function supabaseRequest(path, options = {}) {
     unwrap(
       await supabase
         .from("travel_packages")
-        .insert({ id, status: body.status, data: { ...body, id } }),
+        .insert({ id, status: body.status, data: { ...body, id, homeTitle: body.title } }),
     );
     return { ...body, id };
   }
@@ -143,7 +144,7 @@ export async function supabaseRequest(path, options = {}) {
     unwrap(
       await supabase
         .from("travel_packages")
-        .update({ status: body.status, data: { ...body, id } })
+        .update({ status: body.status, data: { ...body, id, homeTitle: body.title } })
         .eq("id", id)
         .select("id")
         .single(),
