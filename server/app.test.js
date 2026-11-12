@@ -17,7 +17,7 @@ test("API authorization, moderation, publication and persistence", async (t) => 
   let { app, close } = await createApp(config);
   try {
     const catalogue = await request(app).get("/api/packages").expect(200);
-    assert.equal(catalogue.body.length, 6);
+    assert.equal(catalogue.body.length, 9);
     await request(app).get("/api/admin/overview").expect(403);
     const customer = await request(app)
       .post("/api/auth/register")
@@ -69,7 +69,7 @@ test("API authorization, moderation, publication and persistence", async (t) => 
       .set("Authorization", auth)
       .send({ ...trip, status: "published" })
       .expect(200);
-    assert.equal((await request(app).get("/api/packages")).body.length, 7);
+    assert.equal((await request(app).get("/api/packages")).body.length, 10);
     await request(app)
       .post("/api/requests")
       .send({
@@ -153,7 +153,7 @@ test("API authorization, moderation, publication and persistence", async (t) => 
       .expect(401);
     close();
     ({ app, close } = await createApp(config));
-    assert.equal((await request(app).get("/api/packages")).body.length, 7);
+    assert.equal((await request(app).get("/api/packages")).body.length, 10);
     assert.equal(
       (await request(app).get("/api/admin/overview").set("Authorization", auth))
         .body.requests.length,
