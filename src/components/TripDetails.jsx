@@ -9,7 +9,7 @@ export function Enquiry({ trip, plan, onDone }) {
     [error, setError] = useState("");
   const description = plan
     ? `${plan.caption}\n${plan.startDate} · ${plan.nights} nights · ${plan.travelers} travelers\nRoute: ${plan.stops.join(", ")}\nTransport: ${plan.transport}\nCaptain: ${plan.captain ? "Yes" : "No"} · Photographer: ${plan.photographer ? "Yes" : "No"} · Marshal: ${plan.marshal ? "Yes" : "No"}`
-    : `${trip.title} · ${trip.nights} nights · From ${money(trip.price)} per person`;
+    : `${trip.title} · ${trip.nights} nights · ${trip.priceOnRequest ? "Price on request" : `From ${money(trip.price)} per person`}`;
   const [details, setDetails] = useState({
     name: "",
     email: "",
@@ -139,7 +139,13 @@ export default function TripDetails({ trip, onClose }) {
           {trip.nights} nights / {trip.nights + 1} days
         </span>
         <strong className="price">
-          From {money(trip.price)} <small>/ person</small>
+          {trip.priceOnRequest ? (
+            "Request a quote"
+          ) : (
+            <>
+              From {money(trip.price)} <small>/ person</small>
+            </>
+          )}
         </strong>
       </div>
       <p className="muted">{trip.description}</p>

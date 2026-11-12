@@ -7,7 +7,7 @@ export function Brand() {
   return (
     <Link to="/" className="brand" aria-label="Gumshuda Travellers home">
       <strong>
-        gumshuda<span>travellers</span>
+        Gumshuda<span>Travellers</span>
       </strong>
       <small>TRAVEL, YOUR WAY</small>
     </Link>
@@ -114,8 +114,10 @@ export function PackageCard({ trip, home = false, onOpen }) {
         )}
         <div className="card-bottom">
           <div>
-            <strong className="price">{money(trip.price)}</strong>
-            <small className="muted"> / person</small>
+            <strong className="price">
+              {trip.priceOnRequest ? "Request a quote" : money(trip.price)}
+            </strong>
+            {!trip.priceOnRequest && <small className="muted"> / person</small>}
           </div>
           <button
             className={home ? "text-button" : "button secondary small"}
