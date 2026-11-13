@@ -59,7 +59,7 @@ export default function Admin() {
   }, [allowed]);
   const change = (v) => { setDirty(true); setDraft((d) => ({ ...d, ...v })); };
   function openEditor(value) {
-    setDraft({ ...empty(), ...value, attachments: value?.attachments || [] });
+    setDraft({ ...empty(), ...value, priceOnRequest: !!value?.priceOnRequest, attachments: value?.attachments || [] });
     setError(""); setMessage(""); setDirty(false); setEditing(true);
   }
   function closeEditor() {
@@ -203,7 +203,7 @@ export default function Admin() {
   const uploader = (
     <label className="dropzone compact">
       <Upload />
-      <strong>Upload photos, videos or PDFs</strong>
+      <strong>{busy ? "Please wait…" : "Upload photos, videos or PDFs"}</strong>
       <small>
         {hasSupabase
           ? "JPG, PNG, WebP, MP4, PDF · Up to 10 MB"

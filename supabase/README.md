@@ -61,10 +61,7 @@ Database access tests passed for anonymous visitors, non-admin users and the
 designated owner (temporary test identities were rolled back). The security
 advisor reported no findings. Public configuration is included in the website.
 
-Owner Auth account creation and the permanent site_admin membership are still
-pending. Set the password privately in the Supabase dashboard, then grant the
-verified owner's UUID using the SQL above. Real sign-in and file-upload checks
-must be completed after this step. Public signup should be disabled in Auth
+The verified owner account and permanent site_admin membership are active. Real owner sign-in and editing a published package were verified in the deployed UI. File-upload verification was interrupted by browser-session loss; the bucket and adapter accept the documented file types. Public signup should be disabled in Auth
 settings; even if enabled, new users cannot grant themselves admin access.
 
 ## Package editor

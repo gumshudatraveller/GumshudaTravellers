@@ -1,5 +1,5 @@
 import { useEffect, useState, createContext, useContext } from "react";
-import { Routes, Route, NavLink, Link, useLocation } from "react-router-dom";
+import { Routes, Route, NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { request, hasAdminBackend as hasBackend, hasSupabase } from "./api";
 import { contact } from "../shared/data";
@@ -65,6 +65,7 @@ export default function App() {
               <NavLink to="/packages">Travel packages</NavLink>
               <NavLink to="/planner">Build your trip</NavLink>
               <NavLink to="/stories">Traveler stories</NavLink>
+              {user?.role === "admin" && <NavLink to="/admin">Manage packages</NavLink>}
               <button
                 className="text-button mobile-auth"
                 onClick={user ? logout : () => setLogin(true)}
@@ -148,6 +149,7 @@ export default function App() {
   );
 }
 function Login({ onClose }) {
+  const navigate = useNavigate();
   const { setUser } = useAuth(),
     [signup, setSignup] = useState(false),
     [error, setError] = useState(""),
@@ -165,6 +167,7 @@ function Login({ onClose }) {
       sessionStorage.setItem("gumshuda-token", r.token);
       setUser(r.user);
       onClose();
+      if (r.user.role === "admin") navigate("/admin");
     } catch (e) {
       setError(e.message);
     } finally {
