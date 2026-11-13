@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Upload, Plus, LogOut } from "lucide-react";
 import { useAuth } from "../App";
-import { Brand, Button, Field, Notice } from "../components/UI";
+import { Brand, Button, Field, Notice, Modal } from "../components/UI";
 import {
   request,
   hasAdminBackend as hasBackend,
@@ -38,7 +38,9 @@ export default function Admin() {
     [status, setStatus] = useState("all"),
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [editing, setEditing] = useState(false),
+    [dirty, setDirty] = useState(false);
   const allowed = hasBackend && user?.role === "admin";
   async function refresh() {
     if (!allowed) return;
@@ -55,11 +57,29 @@ export default function Admin() {
   useEffect(() => {
     refresh();
   }, [allowed]);
-  const change = (v) => setDraft((d) => ({ ...d, ...v }));
+  const change = (v) => { setDirty(true); setDraft((d) => ({ ...d, ...v })); };
+  function openEditor(value) {
+    setDraft({ ...empty(), ...value, attachments: value?.attachments || [] });
+    setError(""); setMessage(""); setDirty(false); setEditing(true);
+  }
+  function closeEditor() {
+    if (busy) return;
+    if (dirty && !window.confirm("Discard unsaved package changes?")) return;
+    setEditing(false); setDirty(false);
+  }
+  useEffect(() => {
+    const warn = e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
   async function save(publish) {
     setError("");
     setMessage("");
-    if (!allowed) return;
+    if (!allowed || busy) return;
+    if (!draft.title.trim()) { setError("Enter a package title before saving."); return; }
+    if (!Number.isFinite(draft.nights) || draft.nights < 1 || draft.nights > 30) { setError("Nights must be between 1 and 30."); return; }
+    if (!Number.isFinite(draft.price) || draft.price < 0 || (!draft.priceOnRequest && draft.price < 1)) { setError("Enter a price or choose Price on request."); return; }
+    if (draft.departures.some(d => d.trim() && (!/^\d{4}-\d{2}-\d{2}$/.test(d.trim()) || Number.isNaN(Date.parse(d.trim()))))) { setError("Use departure dates in YYYY-MM-DD format, separated by commas."); return; }
     if (
       publish &&
       (!draft.title.trim() ||
@@ -71,15 +91,19 @@ export default function Admin() {
     }
     setBusy(true);
     try {
-      await request(`/admin/packages${draft.id ? "/" + draft.id : ""}`, {
+      const saved = await request(`/admin/packages${draft.id ? "/" + draft.id : ""}`, {
         method: draft.id ? "PUT" : "POST",
         body: JSON.stringify({
           ...draft,
+          title: draft.title.trim(),
+          route: draft.route.map(s => s.trim()).filter(Boolean),
+          departures: draft.departures.map(s => s.trim()).filter(Boolean),
           status: publish ? "published" : "draft",
         }),
       });
       setMessage(publish ? "Itinerary published." : "Draft saved.");
-      setDraft(empty());
+      setDraft(saved);
+      setDirty(false);
       await refresh();
     } catch (e) {
       setError(e.message);
@@ -88,7 +112,8 @@ export default function Admin() {
     }
   }
   async function upload(e) {
-    const file = e.target.files[0];
+    const input = e.currentTarget;
+    const file = input.files[0];
     if (!file) return;
     setBusy(true);
     setError("");
@@ -99,16 +124,17 @@ export default function Admin() {
         method: "POST",
         body: fd,
       });
-      if (uploaded?.type?.startsWith("image/")) change({ image: uploaded.url });
+      if (editing && uploaded?.type?.startsWith("image/")) change({ image: uploaded.url });
+      else if (editing) change({ attachments: [...draft.attachments, { name: uploaded.name, url: uploaded.url, type: uploaded.type }] });
       setMessage(
-        "Media added to your library. Select it as the package cover below.",
+        editing ? "Upload complete. Save the package to keep this media selection." : "Upload complete. Open a package to select this media.",
       );
       await refresh();
     } catch (e) {
       setError(e.message);
     } finally {
       setBusy(false);
-      e.target.value = "";
+      input.value = "";
     }
   }
   async function moderate(id, status) {
@@ -139,8 +165,7 @@ export default function Admin() {
         <Brand />
         <h1>Welcome to your travel studio.</h1>
         <p className="muted">
-          Sign in with your administrator account to manage journeys, enquiries
-          and traveler stories.
+          Sign in with your administrator account to manage packages and media.
         </p>
         {user ? (
           <>
@@ -158,7 +183,7 @@ export default function Admin() {
       </div>
     );
   const tabs = hasSupabase
-    ? ["Itineraries", "Media library", "Website settings"]
+    ? ["Itineraries", "Media library", "Account"]
     : [
         "Overview",
         "Itineraries",
@@ -166,7 +191,7 @@ export default function Admin() {
         "Bookings",
         "Traveler stories",
         "Media library",
-        "Website settings",
+        "Account",
       ];
   const filtered = packages.filter(
     (p) =>
@@ -181,14 +206,14 @@ export default function Admin() {
       <strong>Upload photos, videos or PDFs</strong>
       <small>
         {hasSupabase
-          ? "JPG, PNG, WebP, PDF · Up to 10 MB"
+          ? "JPG, PNG, WebP, MP4, PDF · Up to 10 MB"
           : "JPG, PNG, WebP, MP4, PDF · Up to 100 MB"}
       </small>
       <input
         type="file"
         accept={
           hasSupabase
-            ? "image/jpeg,image/png,image/webp,application/pdf"
+            ? "image/jpeg,image/png,image/webp,video/mp4,application/pdf"
             : "image/jpeg,image/png,image/webp,video/mp4,application/pdf"
         }
         onChange={upload}
@@ -240,7 +265,7 @@ export default function Admin() {
             <Button
               onClick={() => {
                 setTab("Itineraries");
-                setDraft(empty());
+                openEditor(empty());
               }}
             >
               <Plus size={16} /> Create itinerary
@@ -281,7 +306,7 @@ export default function Admin() {
             </div>
           </div>
           {["Overview", "Itineraries"].includes(tab) && (
-            <div className="admin-columns">
+            <div className="admin-columns" style={{display:"block"}}>
               <div>
                 <section className="panel library-table">
                   <h3>Itinerary library</h3>
@@ -314,7 +339,7 @@ export default function Admin() {
                           <th>DURATION</th>
                           <th>FROM / PERSON</th>
                           <th>STATUS</th>
-                          <th />
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -340,10 +365,11 @@ export default function Admin() {
                             <td>
                               <button
                                 className="text-button tiny"
-                                onClick={() => setDraft({ ...p })}
+                                onClick={() => openEditor(p)}
                               >
                                 Edit
                               </button>
+                              <button type="button" className="text-button tiny" onClick={() => { const { id, ...copy } = p; openEditor({ ...copy, title: `${p.title} (copy)`.slice(0,120), status: "draft" }); }}>Duplicate</button>
                             </td>
                           </tr>
                         ))}
@@ -377,14 +403,16 @@ export default function Admin() {
                   </div>
                 </section>
               </div>
+              {editing && <Modal title={draft.id ? "Edit package" : "Create package"} wide onClose={closeEditor}>
               <form
-                className="panel itinerary-editor"
+                className="itinerary-editor admin-package-editor"
                 onSubmit={(e) => {
                   e.preventDefault();
                   save(true);
                 }}
               >
-                <h3>{draft.id ? "Edit itinerary" : "Create an itinerary"}</h3>
+                <Notice error>{error}</Notice><Notice>{message}</Notice>
+                <p className="tiny">{dirty ? "Unsaved changes" : "Changes saved or ready to edit"}</p>
                 <p className="tiny muted">
                   {draft.status === "published"
                     ? "Published journey"
@@ -408,10 +436,10 @@ export default function Admin() {
                   </Field>
                   <Field label="Route (comma separated)">
                     <input
-                      value={draft.route.join(", ")}
+                      value={draft.route.join(",")}
                       onChange={(e) =>
                         change({
-                          route: e.target.value.split(",").map((x) => x.trim()),
+                          route: e.target.value.split(","),
                         })
                       }
                     />
@@ -424,17 +452,7 @@ export default function Admin() {
                         max="30"
                         value={draft.nights}
                         onChange={(e) => {
-                          const n = Math.max(
-                            1,
-                            Math.min(30, Number(e.target.value)),
-                          );
-                          change({
-                            nights: n,
-                            days: Array.from(
-                              { length: n + 1 },
-                              (_, i) => draft.days[i] || "",
-                            ),
-                          });
+                          change({ nights: Number(e.target.value) });
                         }}
                       />
                     </Field>
@@ -483,6 +501,8 @@ export default function Admin() {
                       onChange={(e) => change({ description: e.target.value })}
                     />
                   </Field>
+                  <h4>Package cover</h4>
+                  <img className="admin-cover-preview" src={asset(draft.image)} alt="Selected package cover" />
                   {uploader}
                   <Field label="Cover photo">
                     <select
@@ -511,7 +531,8 @@ export default function Admin() {
                   <h4>Daily itinerary</h4>
                   {draft.days.map((d, i) => (
                     <Field key={i} label={`Day ${i + 1}`}>
-                      <input
+                      <textarea
+                        rows={3}
                         value={d}
                         onChange={(e) =>
                           change({
@@ -521,21 +542,26 @@ export default function Admin() {
                           })
                         }
                       />
+                      <button type="button" className="text-button" disabled={draft.days.length <= 1} onClick={() => change({days: draft.days.filter((_, n) => n !== i)})}>Remove day {i + 1}</button>
                     </Field>
                   ))}
+                  <Button type="button" secondary onClick={() => change({ days: [...draft.days, ""] })}>Add itinerary day</Button>
+                  <p className="tiny muted">Add overnight travel days separately. Changing nights does not delete your itinerary.</p>
                   <Field label="Departure dates (comma separated, YYYY-MM-DD)">
                     <input
-                      value={draft.departures?.join(", ") || ""}
+                      value={draft.departures?.join(",") || ""}
                       onChange={(e) =>
                         change({
                           departures: e.target.value
-                            .split(",")
-                            .map((s) => s.trim())
-                            .filter(Boolean),
+                            .split(","),
                         })
                       }
                     />
                   </Field>
+                  <h4>Package details</h4>
+                  {[ ["inclusions", "Inclusions (one per line)"], ["exclusions", "Exclusions (one per line)"], ["highlights", "Highlights (one per line)"] ].map(([key, label]) => <Field key={key} label={label}><textarea rows={3} value={(draft[key] || []).join("\n")} onChange={e => change({[key]: e.target.value.split("\n")})} /></Field>)}
+                  <Field label="Transport"><input value={draft.transport || ""} onChange={e => change({transport:e.target.value})} placeholder="e.g. Urbania AC traveller" /></Field>
+                  <Field label="Group size"><input type="number" min="1" max="100" value={draft.groupSize || ""} onChange={e => change({groupSize: Number(e.target.value) || null})} /></Field>
                   <h4>Customer attachments</h4>
                   {media.map((m) => (
                     <label className="check tiny" key={m.id}>
@@ -547,7 +573,7 @@ export default function Admin() {
                             attachments: e.target.checked
                               ? [
                                   ...draft.attachments,
-                                  { name: m.name, url: m.url },
+                                  { name: m.name, url: m.url, type: m.type },
                                 ]
                               : draft.attachments.filter(
                                   (a) => a.url !== m.url,
@@ -565,12 +591,14 @@ export default function Admin() {
                   )}
                   <div className="actions">
                     <Button type="button" secondary onClick={() => save(false)}>
-                      Save draft
+                      {draft.status === "published" ? "Unpublish & save draft" : "Save draft"}
                     </Button>
-                    <Button>Publish itinerary</Button>
+                    <Button type="submit">{busy ? "Saving…" : draft.status === "published" ? "Save published changes" : "Publish itinerary"}</Button>
+                    <Button type="button" secondary onClick={closeEditor}>Close editor</Button>
                   </div>
                 </fieldset>
               </form>
+              </Modal>}
             </div>
           )}
           {["Custom trip requests", "Bookings"].includes(tab) && (
@@ -675,12 +703,13 @@ export default function Admin() {
                       {m.name} ↗
                     </a>
                     <small>{(m.size / 1024 / 1024).toFixed(1)} MB</small>
+                    <Button type="button" secondary onClick={() => { setTab("Itineraries"); openEditor({ ...empty(), ...(m.type.startsWith("image/") ? {image:m.url} : {attachments:[{name:m.name,url:m.url,type:m.type}]}) }); }}>Create package with this file</Button>
                   </article>
                 ))}
               </div>
             </section>
           )}
-          {tab === "Website settings" && (
+          {tab === "Account" && (
             <section className="panel">
               <h3>Business details</h3>
               <p>Gumshuda Travellers</p>
@@ -689,13 +718,12 @@ export default function Admin() {
               </p>
               <p>Instagram: @{contact.instagram}</p>
               <p className="muted">
-                Business details are maintained in shared/data.js. Package
-                content is managed in the itinerary editor.
+                Use Itineraries to create, edit, duplicate, publish or unpublish a package. Use Media library to upload images, short MP4 videos and PDF guides.
               </p>
               <h4>Account</h4>
               <p>{user?.email || "Preview mode"}</p>
               <p className="tiny muted">
-                Administrator access is configured securely on the backend host.
+                Only your owner account can change packages. Published changes appear when customers reload the website.
               </p>
             </section>
           )}

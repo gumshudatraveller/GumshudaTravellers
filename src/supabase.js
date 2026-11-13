@@ -100,9 +100,10 @@ export async function supabaseRequest(path, options = {}) {
       "image/png": "png",
       "image/webp": "webp",
       "application/pdf": "pdf",
+      "video/mp4": "mp4",
     };
     if (!file || !extensions[file.type])
-      throw new Error("Choose a JPG, PNG, WebP image or PDF.");
+      throw new Error("Choose a JPG, PNG, WebP image, MP4 video or PDF.");
     if (file.size > 10 * 1024 * 1024)
       throw new Error("Choose a file smaller than 10 MB.");
     const name = `${user.id}/${crypto.randomUUID()}.${extensions[file.type]}`;
@@ -137,7 +138,7 @@ export async function supabaseRequest(path, options = {}) {
         .from("travel_packages")
         .insert({ id, status: body.status, data: { ...body, id, homeTitle: body.title } }),
     );
-    return { ...body, id };
+    return { ...body, id, homeTitle: body.title };
   }
   if (path.startsWith("/admin/packages/") && method === "PUT") {
     const id = path.slice("/admin/packages/".length);
@@ -149,7 +150,7 @@ export async function supabaseRequest(path, options = {}) {
         .select("id")
         .single(),
     );
-    return { ...body, id };
+    return { ...body, id, homeTitle: body.title };
   }
   throw new Error(
     "This feature is not enabled with Supabase package management.",

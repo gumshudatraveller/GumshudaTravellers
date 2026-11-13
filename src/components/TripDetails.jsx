@@ -153,6 +153,10 @@ export default function TripDetails({ trip, onClose }) {
         Indicative package · Taxes, exact inclusions and travel conditions
         confirmed with your quote. Mountain routes depend on weather and access.
       </p>
+      {trip.transport && <p><strong>Transport:</strong> {trip.transport}</p>}
+      {trip.groupSize > 0 && <p><strong>Group size:</strong> {trip.groupSize} travellers</p>}
+      {[ ["highlights", "Trip highlights"], ["inclusions", "Included"], ["exclusions", "Not included"] ].map(([key, title]) => trip[key]?.some(x => x.trim()) && <section key={key}><h3>{title}</h3><ul>{trip[key].filter(x => x.trim()).map((item, i) => <li key={i}>{item}</li>)}</ul></section>)}
+      {trip.departures?.length > 0 && <p><strong>Departure dates:</strong> {trip.departures.join(" · ")}</p>}
       <h3>Your journey, day by day</h3>
       <ol className="days">
         {trip.days.map((day, i) => (
@@ -169,9 +173,11 @@ export default function TripDetails({ trip, onClose }) {
         <div className="stack">
           <h3>Trip guides & media</h3>
           {trip.attachments.map((a) => (
-            <a key={a.url} href={asset(a.url)} target="_blank" rel="noreferrer">
-              {a.name} ↗
-            </a>
+            <div key={a.url}>
+              {a.type?.startsWith("image/") && <img className="detail-image" src={asset(a.url)} alt={a.name} loading="lazy" />}
+              {a.type === "video/mp4" && <video style={{width:"100%"}} src={asset(a.url)} controls preload="metadata" />}
+              <a href={asset(a.url)} target="_blank" rel="noreferrer">{a.name} ↗</a>
+            </div>
           ))}
         </div>
       )}

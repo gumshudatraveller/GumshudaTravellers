@@ -59,7 +59,7 @@ export function Modal({ title, onClose, children, wide = false }) {
     <dialog
       ref={ref}
       className={`modal ${wide ? "wide" : ""}`}
-      onCancel={onClose}
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}

@@ -39,7 +39,7 @@ RLS protects every application table. Public users can read published packages.
 Only the single site administrator can write packages and media records or upload
 files. Storage is a public marketing-media bucket: image/PDF URLs are publicly
 accessible; never upload customer IDs or other private files. Each upload is
-limited to 10 MB. Videos are intentionally excluded to conserve the free quota.
+limited to 10 MB. Short MP4 videos are supported within the same 10 MB per-file limit. Apply `package-media-config.sql` to enable MP4 on an existing installation.
 Deleting a draft/unpublishing it does not make its public media private.
 
 The app uses Supabase Auth with refreshable sessions in sessionStorage. Passwords
@@ -66,3 +66,7 @@ pending. Set the password privately in the Supabase dashboard, then grant the
 verified owner's UUID using the SQL above. Real sign-in and file-upload checks
 must be completed after this step. Public signup should be disabled in Auth
 settings; even if enabled, new users cannot grant themselves admin access.
+
+## Package editor
+
+Edit and Create itinerary open a dedicated dialog. Save draft keeps unfinished work private; Publish itinerary makes it public; Unpublish & save draft removes it from the catalogue. Duplicate starts an unsaved copy. Upload an image to select it as the cover; choose additional media as customer attachments. PDF and MP4 uploads in the editor attach automatically. Save the package after uploading. Day controls are independent of nights and never truncate existing text.

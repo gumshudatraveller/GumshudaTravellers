@@ -2582,3 +2582,12 @@ td small {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* A dedicated dialog keeps package actions visible at every screen width. */
+.admin-package-editor fieldset { display: block; }
+.admin-package-editor .field { margin: 18px 0; }
+.admin-package-editor .field textarea { min-height: 100px; }
+.admin-package-editor .actions { position: sticky; bottom: -24px; background: #fafaf7; padding: 18px 0; border-top: 1px solid var(--line); z-index: 2; flex-wrap: wrap; }
+.admin-cover-preview { width: 100%; max-height: 260px; object-fit: contain; border-radius: 12px; background: #edf1e9; }
+.library-table td .text-button { display: block; padding: 8px; min-height: 36px; }
+.media-grid .button { margin-top: 12px; font-size: 12px; }
